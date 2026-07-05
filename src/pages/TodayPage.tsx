@@ -1,0 +1,90 @@
+import { useState } from 'react'
+import { format } from 'date-fns'
+import { ru } from 'date-fns/locale'
+import { useTasks, useTaskMutations } from '../hooks/useTasks'
+import { useLists } from '../hooks/useLists'
+import { todayISO } from '../lib/dates'
+import TaskItem from '../components/TaskItem'
+import TaskEditor from '../components/TaskEditor'
+import QuickAdd from '../components/QuickAdd'
+import type { Task } from '../types'
+
+export default function TodayPage() {
+  const { tasks } = useTasks()
+  const lists = useLists()
+  const { toggleComplete } = useTaskMutations()
+  const [editing, setEditing] = useState<Task | null>(null)
+
+  const today = todayISO()
+  const listName = (id: string) => {
+    const l = lists.find((x) => x.id === id)
+    return l ? `${l.emoji ?? ''} ${l.name}`.trim() : ''
+  }
+
+  const overdue = tasks.filter((t) => !t.completed_at && t.due_date && t.due_date < today)
+  const dueToday = tasks.filter((t) => !t.completed_at && t.due_date === today)
+  const doneToday = tasks.filter(
+    (t) => t.completed_at && t.completed_at.slice(0, 10) === today,
+  )
+
+  return (
+    <div className="mx-auto max-w-2xl px-4 py-6">
+      <h1 className="mb-1 text-2xl font-bold">Сегодня</h1>
+      <p className="mb-5 text-sm text-ink-dim">
+        {format(new Date(), 'EEEE, d MMMM', { locale: ru })}
+      </p>
+
+      <QuickAdd listId={lists[0]?.id} dueDate={today} placeholder="Добавить задачу на сегодня…" />
+
+      {overdue.length > 0 && (
+        <section className="mb-5">
+          <h2 className="mb-1 px-3 text-sm font-semibold text-p1">Просроченные</h2>
+          {overdue.map((t) => (
+            <TaskItem
+              key={t.id}
+              task={t}
+              onToggle={(task) => toggleComplete.mutate(task)}
+              onOpen={setEditing}
+              showList={listName(t.list_id)}
+            />
+          ))}
+        </section>
+      )}
+
+      <section>
+        {dueToday.length === 0 && overdue.length === 0 && (
+          <p className="px-3 py-8 text-center text-ink-faint">
+            На сегодня всё сделано 🎉
+          </p>
+        )}
+        {dueToday.map((t) => (
+          <TaskItem
+            key={t.id}
+            task={t}
+            onToggle={(task) => toggleComplete.mutate(task)}
+            onOpen={setEditing}
+            showList={listName(t.list_id)}
+          />
+        ))}
+      </section>
+
+      {doneToday.length > 0 && (
+        <section className="mt-5 opacity-60">
+          <h2 className="mb-1 px-3 text-sm font-semibold text-ink-dim">
+            Выполнено сегодня — {doneToday.length}
+          </h2>
+          {doneToday.map((t) => (
+            <TaskItem
+              key={t.id}
+              task={t}
+              onToggle={(task) => toggleComplete.mutate(task)}
+              onOpen={setEditing}
+            />
+          ))}
+        </section>
+      )}
+
+      {editing && <TaskEditor task={editing} onClose={() => setEditing(null)} />}
+    </div>
+  )
+}
