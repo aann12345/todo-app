@@ -5,15 +5,7 @@ import { useWorkspace } from '../hooks/useWorkspace'
 import { useLists, useListMutations } from '../hooks/useLists'
 import { useTasks } from '../hooks/useTasks'
 import { todayISO } from '../lib/dates'
-import type { WorkspaceKind } from '../types'
 import Avatar from './Avatar'
-import WorkspaceDialog from './WorkspaceDialog'
-
-const KIND_EMOJI: Record<WorkspaceKind, string> = {
-  personal: '🙂',
-  family: '🏠',
-  work: '💼',
-}
 
 function navCls({ isActive }: { isActive: boolean }) {
   return `flex items-center justify-between rounded-lg px-3 py-2 text-[15px] transition ${
@@ -22,11 +14,10 @@ function navCls({ isActive }: { isActive: boolean }) {
 }
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
-  const { workspaces, current, setCurrentId, myProfile, members } = useWorkspace()
+  const { current, myProfile, members } = useWorkspace()
   const lists = useLists()
   const { addList } = useListMutations()
   const { tasks } = useTasks()
-  const [showWsDialog, setShowWsDialog] = useState(false)
   const [newList, setNewList] = useState('')
   const [addingList, setAddingList] = useState(false)
 
@@ -44,46 +35,8 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <aside className="flex h-full w-72 flex-col bg-surface-1 p-4">
-      {/* Переключатель пространств: яркие вкладки, визуально отдельно от меню */}
-      <div className="mb-3 rounded-xl bg-surface-2 p-2.5">
-        <div className="mb-2 flex items-center justify-between px-0.5">
-          <span className="text-[11px] font-semibold tracking-wider text-ink-faint uppercase">
-            Пространство
-          </span>
-          <button
-            onClick={() => setShowWsDialog(true)}
-            className="rounded-full bg-surface-3 px-2 text-sm leading-5 text-ink-dim transition hover:text-accent"
-            title="Новое пространство или вступить по коду"
-          >
-            +
-          </button>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {workspaces.map((w) => {
-            const active = current?.id === w.id
-            return (
-              <button
-                key={w.id}
-                onClick={() => {
-                  setCurrentId(w.id)
-                  onNavigate?.()
-                }}
-                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition ${
-                  active
-                    ? 'bg-accent font-semibold text-white'
-                    : 'bg-surface-1 text-ink-dim hover:bg-surface-3 hover:text-ink'
-                }`}
-              >
-                <span>{KIND_EMOJI[w.kind]}</span>
-                <span className="max-w-28 truncate">{w.name}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Виды текущего пространства */}
-      <nav className="flex flex-col gap-0.5 border-t border-surface-2 pt-3" onClick={onNavigate}>
+      {/* Виды текущего пространства (пространства переключаются вкладками сверху) */}
+      <nav className="flex flex-col gap-0.5" onClick={onNavigate}>
         <NavLink to="/" end className={navCls}>
           <span>📆 Сегодня</span>
           {todayCount > 0 && <span className="text-xs text-ink-faint">{todayCount}</span>}
@@ -165,7 +118,6 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         </button>
       </div>
 
-      {showWsDialog && <WorkspaceDialog onClose={() => setShowWsDialog(false)} />}
     </aside>
   )
 }

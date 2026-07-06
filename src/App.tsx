@@ -13,6 +13,8 @@ import ListPage from './pages/ListPage'
 import MembersPage from './pages/MembersPage'
 import SettingsPage from './pages/SettingsPage'
 import Snackbar from './components/Snackbar'
+import WorkspaceTabs from './components/WorkspaceTabs'
+import GlobalAdd from './components/GlobalAdd'
 
 function SetupScreen() {
   return (
@@ -68,16 +70,16 @@ function Shell() {
       )}
 
       <main className="min-w-0 flex-1 overflow-y-auto">
-        {/* Мобильная шапка */}
-        <header className="sticky top-0 z-30 flex items-center gap-3 bg-surface-0/90 px-4 py-3 backdrop-blur md:hidden">
+        {/* Шапка: меню (на мобильном) + горизонтальные вкладки пространств */}
+        <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-surface-1 bg-surface-0/90 px-3 py-2.5 backdrop-blur">
           <button
             onClick={() => setMenuOpen(true)}
-            className="rounded-lg bg-surface-1 px-3 py-1.5 text-lg leading-none"
+            className="shrink-0 rounded-lg bg-surface-1 px-3 py-1.5 text-lg leading-none md:hidden"
             aria-label="Меню"
           >
             ☰
           </button>
-          <span className="font-semibold">{current.name}</span>
+          <WorkspaceTabs />
         </header>
 
         <Routes>
@@ -91,6 +93,7 @@ function Shell() {
         </Routes>
       </main>
 
+      <GlobalAdd />
       <Snackbar />
     </div>
   )
