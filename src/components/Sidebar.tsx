@@ -145,6 +145,14 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       <div className="mt-3 flex items-center gap-2.5 border-t border-surface-2 pt-3">
         {myProfile && <Avatar profile={myProfile} size={30} />}
         <span className="min-w-0 flex-1 truncate text-sm">{myProfile?.display_name}</span>
+        <NavLink
+          to="/settings"
+          onClick={onNavigate}
+          className="rounded-lg px-2 py-1 text-sm text-ink-faint transition hover:bg-surface-2 hover:text-ink"
+          title="Настройки"
+        >
+          ⚙️
+        </NavLink>
         <button
           onClick={() => supabase.auth.signOut()}
           className="rounded-lg px-2 py-1 text-xs text-ink-faint transition hover:bg-surface-2 hover:text-ink"

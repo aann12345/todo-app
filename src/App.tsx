@@ -11,6 +11,8 @@ import UpcomingPage from './pages/UpcomingPage'
 import MyTasksPage from './pages/MyTasksPage'
 import ListPage from './pages/ListPage'
 import MembersPage from './pages/MembersPage'
+import SettingsPage from './pages/SettingsPage'
+import Snackbar from './components/Snackbar'
 
 function SetupScreen() {
   return (
@@ -84,9 +86,12 @@ function Shell() {
           <Route path="/mine" element={<MyTasksPage />} />
           <Route path="/list/:listId" element={<ListPage />} />
           <Route path="/members" element={<MembersPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+
+      <Snackbar />
     </div>
   )
 }

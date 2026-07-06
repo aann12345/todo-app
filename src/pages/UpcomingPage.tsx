@@ -9,7 +9,7 @@ import type { Task } from '../types'
 export default function UpcomingPage() {
   const { tasks } = useTasks()
   const lists = useLists()
-  const { toggleComplete } = useTaskMutations()
+  const { toggleComplete, deleteTask } = useTaskMutations()
   const [editing, setEditing] = useState<Task | null>(null)
 
   const today = todayISO()
@@ -47,6 +47,7 @@ export default function UpcomingPage() {
               key={t.id}
               task={t}
               onToggle={(task) => toggleComplete.mutate(task)}
+              onDelete={(task) => deleteTask.mutate(task)}
               onOpen={setEditing}
               showList={listName(t.list_id)}
             />
@@ -62,6 +63,7 @@ export default function UpcomingPage() {
               key={t.id}
               task={t}
               onToggle={(task) => toggleComplete.mutate(task)}
+              onDelete={(task) => deleteTask.mutate(task)}
               onOpen={setEditing}
               showList={listName(t.list_id)}
             />

@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase'
 import { useWorkspace } from './useWorkspace'
 import { useUserId } from '../auth/AuthProvider'
 import { nextOccurrence } from '../lib/recurrence'
+import { categorize } from '../lib/categories'
+import { showSnackbar } from '../lib/snackbar'
 import type { Task } from '../types'
 
 const TASK_SELECT = '*, assignee:profiles!tasks_assignee_id_fkey(id, display_name, color)'
@@ -37,6 +39,7 @@ export interface TaskInput {
   priority?: number
   assignee_id?: string | null
   recurrence?: Task['recurrence']
+  quantity?: string | null
 }
 
 export function useTaskMutations() {
@@ -59,6 +62,8 @@ export function useTaskMutations() {
         priority: input.priority ?? 4,
         assignee_id: input.assignee_id ?? null,
         recurrence: input.recurrence ?? null,
+        quantity: input.quantity ?? null,
+        category: categorize(input.title),
       })
       if (error) throw error
     },
@@ -98,9 +103,12 @@ export function useTaskMutations() {
           recurrence: task.recurrence,
           created_by: userId,
           due_date: nextOccurrence(task.recurrence, task.due_date),
+          quantity: task.quantity,
+          category: task.category,
         })
         if (err2) throw err2
       }
+      return completing
     },
     // оптимистично переключаем чекбокс, чтобы UI не ждал сеть
     onMutate: async (task) => {
@@ -118,15 +126,39 @@ export function useTaskMutations() {
     onError: (_e, _t, ctx) => {
       if (ctx?.prev) qc.setQueryData(key, ctx.prev)
     },
+    onSuccess: (completing, task) => {
+      // undo только для обычных задач: у повторяющихся уже создано след. вхождение
+      if (completing && !task.recurrence) {
+        showSnackbar({
+          text: 'Задача выполнена',
+          actionLabel: 'Отменить',
+          onAction: async () => {
+            await supabase.from('tasks').update({ completed_at: null }).eq('id', task.id)
+            invalidate()
+          },
+        })
+      }
+    },
     onSettled: invalidate,
   })
 
   const deleteTask = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('tasks').delete().eq('id', id)
+    mutationFn: async (task: Task) => {
+      const { error } = await supabase.from('tasks').delete().eq('id', task.id)
       if (error) throw error
     },
-    onSuccess: invalidate,
+    onSuccess: (_d, task) => {
+      invalidate()
+      showSnackbar({
+        text: `Удалено: «${task.title}»`,
+        actionLabel: 'Вернуть',
+        onAction: async () => {
+          const { assignee: _a, ...row } = task
+          await supabase.from('tasks').insert(row)
+          invalidate()
+        },
+      })
+    },
   })
 
   return { addTask, updateTask, toggleComplete, deleteTask }

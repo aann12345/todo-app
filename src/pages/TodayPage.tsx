@@ -12,7 +12,7 @@ import type { Task } from '../types'
 export default function TodayPage() {
   const { tasks } = useTasks()
   const lists = useLists()
-  const { toggleComplete } = useTaskMutations()
+  const { toggleComplete, deleteTask } = useTaskMutations()
   const [editing, setEditing] = useState<Task | null>(null)
 
   const today = todayISO()
@@ -27,12 +27,30 @@ export default function TodayPage() {
     (t) => t.completed_at && t.completed_at.slice(0, 10) === today,
   )
 
+  const total = overdue.length + dueToday.length + doneToday.length
+  const progress = total > 0 ? Math.round((doneToday.length / total) * 100) : 0
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
       <h1 className="mb-1 text-2xl font-bold">Сегодня</h1>
-      <p className="mb-5 text-sm text-ink-dim">
+      <p className="mb-4 text-sm text-ink-dim">
         {format(new Date(), 'EEEE, d MMMM', { locale: ru })}
       </p>
+
+      {total > 0 && (
+        <div className="mb-5">
+          <div className="mb-1 flex justify-between text-xs text-ink-dim">
+            <span>Выполнено {doneToday.length} из {total}</span>
+            <span>{progress}%</span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+            <div
+              className="h-full rounded-full bg-accent transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       <QuickAdd listId={lists[0]?.id} dueDate={today} placeholder="Добавить задачу на сегодня…" />
 
@@ -43,7 +61,7 @@ export default function TodayPage() {
             <TaskItem
               key={t.id}
               task={t}
-              onToggle={(task) => toggleComplete.mutate(task)}
+              onToggle={(task) => toggleComplete.mutate(task)} onDelete={(task) => deleteTask.mutate(task)}
               onOpen={setEditing}
               showList={listName(t.list_id)}
             />
@@ -61,7 +79,7 @@ export default function TodayPage() {
           <TaskItem
             key={t.id}
             task={t}
-            onToggle={(task) => toggleComplete.mutate(task)}
+            onToggle={(task) => toggleComplete.mutate(task)} onDelete={(task) => deleteTask.mutate(task)}
             onOpen={setEditing}
             showList={listName(t.list_id)}
           />

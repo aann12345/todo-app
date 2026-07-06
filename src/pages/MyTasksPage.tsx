@@ -10,7 +10,7 @@ export default function MyTasksPage() {
   const { tasks } = useTasks()
   const lists = useLists()
   const userId = useUserId()
-  const { toggleComplete } = useTaskMutations()
+  const { toggleComplete, deleteTask } = useTaskMutations()
   const [editing, setEditing] = useState<Task | null>(null)
 
   const listName = (id: string) => {
@@ -35,6 +35,7 @@ export default function MyTasksPage() {
           key={t.id}
           task={t}
           onToggle={(task) => toggleComplete.mutate(task)}
+              onDelete={(task) => deleteTask.mutate(task)}
           onOpen={setEditing}
           showList={listName(t.list_id)}
         />

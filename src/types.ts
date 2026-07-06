@@ -4,6 +4,25 @@ export interface Profile {
   id: string
   display_name: string
   color: string
+  notify_added?: boolean
+  notify_assigned?: boolean
+  notify_digest?: boolean
+}
+
+export interface ChecklistItem {
+  id: string
+  text: string
+  done: boolean
+}
+
+export interface Comment {
+  id: string
+  task_id: string
+  workspace_id: string
+  author_id: string
+  body: string
+  created_at: string
+  author?: Profile
 }
 
 export interface Workspace {
@@ -48,6 +67,9 @@ export interface Task {
   created_by: string
   position: number
   created_at: string
+  quantity: string | null
+  category: string | null
+  checklist: ChecklistItem[]
   assignee?: Profile | null
 }
 
