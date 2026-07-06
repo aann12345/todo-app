@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
+import { versionLabel } from '../lib/version'
 
 const ERRORS: Record<string, string> = {
   'Invalid login credentials': 'Неверный email или пароль',
@@ -108,6 +109,7 @@ export default function AuthPage() {
             {mode === 'login' ? 'Создать' : 'Войти'}
           </button>
         </p>
+        <p className="mt-6 text-center text-xs text-ink-faint">{versionLabel()}</p>
       </div>
     </div>
   )

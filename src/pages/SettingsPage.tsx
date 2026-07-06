@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { versionLabel } from '../lib/version'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useUserId } from '../auth/AuthProvider'
@@ -138,6 +139,10 @@ export default function SettingsPage() {
       <p className="mt-4 px-1 text-xs text-ink-faint">
         Уведомления о добавленных задачах приходят только участникам общих пространств
         (кроме автора задачи). Настройки действуют на все ваши устройства.
+      </p>
+
+      <p className="mt-6 px-1 text-center text-xs text-ink-faint">
+        Версия приложения: {versionLabel()}
       </p>
     </div>
   )

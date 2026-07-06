@@ -6,6 +6,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   // сайт публикуется на GitHub Pages под /todo-app/
   base: '/todo-app/',
+  define: {
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -15,6 +18,7 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
+      injectRegister: false,
       includeAssets: ['favicon.svg'],
       manifest: {
         name: 'Семейные задачи',
