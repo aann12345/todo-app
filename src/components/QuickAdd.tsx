@@ -37,14 +37,24 @@ export default function QuickAdd({
 
   return (
     <form onSubmit={submit} className="mb-3">
-      <div className="flex items-center gap-3 rounded-xl bg-surface-1 px-3 py-2.5 ring-accent transition focus-within:ring-2">
+      <div className="flex items-center gap-3 rounded-xl bg-surface-1 px-3 py-2 ring-accent transition focus-within:ring-2">
         <span className="text-lg leading-none text-accent">+</span>
         <input
           className="w-full bg-transparent text-[15px] outline-none placeholder:text-ink-faint"
           placeholder={placeholder}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          enterKeyHint="done"
         />
+        {/* явная кнопка отправки: галочка на клавиатуре iOS не сабмитит форму */}
+        {title.trim() && (
+          <button
+            type="submit"
+            className="shrink-0 rounded-lg bg-accent px-3.5 py-1.5 text-sm font-semibold text-white transition hover:brightness-110"
+          >
+            Добавить
+          </button>
+        )}
       </div>
       {hasHint && (
         <div className="mt-1.5 flex flex-wrap items-center gap-2 px-3 text-xs text-ink-dim">
