@@ -44,43 +44,46 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <aside className="flex h-full w-72 flex-col bg-surface-1 p-4">
-      {/* Пространства */}
-      <div className="mb-4">
-        <div className="mb-2 flex items-center justify-between px-1">
-          <span className="text-xs font-semibold tracking-wide text-ink-faint uppercase">
-            Пространства
+      {/* Переключатель пространств: яркие вкладки, визуально отдельно от меню */}
+      <div className="mb-3 rounded-xl bg-surface-2 p-2.5">
+        <div className="mb-2 flex items-center justify-between px-0.5">
+          <span className="text-[11px] font-semibold tracking-wider text-ink-faint uppercase">
+            Пространство
           </span>
           <button
             onClick={() => setShowWsDialog(true)}
-            className="rounded px-1.5 text-lg leading-none text-ink-dim transition hover:text-accent"
-            title="Новое пространство"
+            className="rounded-full bg-surface-3 px-2 text-sm leading-5 text-ink-dim transition hover:text-accent"
+            title="Новое пространство или вступить по коду"
           >
             +
           </button>
         </div>
-        <div className="flex flex-col gap-1">
-          {workspaces.map((w) => (
-            <button
-              key={w.id}
-              onClick={() => {
-                setCurrentId(w.id)
-                onNavigate?.()
-              }}
-              className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[15px] transition ${
-                current?.id === w.id
-                  ? 'bg-surface-3 font-medium'
-                  : 'text-ink-dim hover:bg-surface-2'
-              }`}
-            >
-              <span>{KIND_EMOJI[w.kind]}</span>
-              <span className="truncate">{w.name}</span>
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-1.5">
+          {workspaces.map((w) => {
+            const active = current?.id === w.id
+            return (
+              <button
+                key={w.id}
+                onClick={() => {
+                  setCurrentId(w.id)
+                  onNavigate?.()
+                }}
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition ${
+                  active
+                    ? 'bg-accent font-semibold text-white'
+                    : 'bg-surface-1 text-ink-dim hover:bg-surface-3 hover:text-ink'
+                }`}
+              >
+                <span>{KIND_EMOJI[w.kind]}</span>
+                <span className="max-w-28 truncate">{w.name}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      {/* Виды */}
-      <nav className="flex flex-col gap-0.5" onClick={onNavigate}>
+      {/* Виды текущего пространства */}
+      <nav className="flex flex-col gap-0.5 border-t border-surface-2 pt-3" onClick={onNavigate}>
         <NavLink to="/" end className={navCls}>
           <span>📆 Сегодня</span>
           {todayCount > 0 && <span className="text-xs text-ink-faint">{todayCount}</span>}
@@ -100,7 +103,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       {/* Списки */}
-      <div className="mt-5 min-h-0 flex-1 overflow-y-auto">
+      <div className="mt-3 min-h-0 flex-1 overflow-y-auto border-t border-surface-2 pt-3">
         <div className="mb-1 flex items-center justify-between px-1">
           <span className="text-xs font-semibold tracking-wide text-ink-faint uppercase">
             Списки
