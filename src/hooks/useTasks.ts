@@ -5,7 +5,8 @@ import { useUserId } from '../auth/AuthProvider'
 import { nextOccurrence } from '../lib/recurrence'
 import { categorize } from '../lib/categories'
 import { showSnackbar } from '../lib/snackbar'
-import type { Task } from '../types'
+import { dueLabel } from '../lib/dates'
+import type { List, Task } from '../types'
 
 const TASK_SELECT = '*, assignee:profiles!tasks_assignee_id_fkey(id, display_name, color)'
 
@@ -67,7 +68,17 @@ export function useTaskMutations() {
       })
       if (error) throw error
     },
-    onSuccess: invalidate,
+    onSuccess: (_d, input) => {
+      invalidate()
+      // подтверждение с адресом: видно, КУДА улетела задача
+      const lists = qc.getQueryData<List[]>(['lists', wsId])
+      const listName = lists?.find((l) => l.id === input.list_id)?.name ?? 'список'
+      const when = input.due_date ? `, срок: ${dueLabel(input.due_date)}` : ''
+      showSnackbar({ text: `Добавлено в «${listName}»${when}` })
+    },
+    onError: (err) => {
+      showSnackbar({ text: `Не удалось добавить: ${err.message}` })
+    },
   })
 
   const updateTask = useMutation({
