@@ -88,7 +88,7 @@ export default function GlobalAdd() {
               autoFocus
               rows={multi ? Math.min(items.length + 1, 8) : 2}
               className="w-full resize-none bg-transparent text-lg outline-none placeholder:text-ink-faint"
-              placeholder="Что нужно сделать?&#10;Список: каждый товар с новой строки или через запятую"
+              placeholder="Что купить или сделать?&#10;&#10;Можно списком — каждый продукт с новой строки:&#10;хлеб&#10;чай&#10;сахар&#10;(или через запятую: хлеб, чай, сахар)"
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
