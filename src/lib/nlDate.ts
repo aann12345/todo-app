@@ -8,6 +8,17 @@ export interface ParsedInput {
   quantity: string | null
 }
 
+/**
+ * Разбивает ввод на отдельные пункты: по переносам строк и запятым.
+ * «хлеб, молоко, яйца» → ['хлеб','молоко','яйца']. Пустые отбрасываются.
+ */
+export function splitItems(raw: string): string[] {
+  return raw
+    .split(/[\n,;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
 const WEEKDAYS: Record<string, number> = {
   'воскресенье': 0, 'воскресенья': 0,
   'понедельник': 1, 'понедельника': 1,

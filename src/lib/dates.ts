@@ -1,8 +1,25 @@
-import { format, isToday, isTomorrow, isYesterday, parseISO, startOfDay } from 'date-fns'
+import {
+  addDays,
+  endOfMonth,
+  format,
+  isToday,
+  isTomorrow,
+  isYesterday,
+  parseISO,
+  startOfDay,
+} from 'date-fns'
 import { ru } from 'date-fns/locale'
 
 export function todayISO(): string {
   return format(new Date(), 'yyyy-MM-dd')
+}
+
+export function isoIn(days: number): string {
+  return format(addDays(new Date(), days), 'yyyy-MM-dd')
+}
+
+export function endOfMonthISO(): string {
+  return format(endOfMonth(new Date()), 'yyyy-MM-dd')
 }
 
 export function isOverdue(dueDate: string): boolean {

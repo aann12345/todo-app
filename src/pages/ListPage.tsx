@@ -6,6 +6,9 @@ import { CATEGORY_ORDER } from '../lib/categories'
 import TaskItem from '../components/TaskItem'
 import TaskEditor from '../components/TaskEditor'
 import QuickAdd from '../components/QuickAdd'
+import EmptyState from '../components/EmptyState'
+import SwipeHint from '../components/SwipeHint'
+import SortableTaskList from '../components/SortableTaskList'
 import type { Task } from '../types'
 
 export default function ListPage() {
@@ -13,14 +16,17 @@ export default function ListPage() {
   const navigate = useNavigate()
   const { tasks } = useTasks()
   const lists = useLists()
-  const { toggleComplete, deleteTask, addTask } = useTaskMutations()
+  const { toggleComplete, deleteTask, addTask, updateTask, reorder } = useTaskMutations()
   const [editing, setEditing] = useState<Task | null>(null)
   const [showDone, setShowDone] = useState(false)
 
   const list = lists.find((l) => l.id === listId)
 
   const active = useMemo(
-    () => tasks.filter((t) => t.list_id === listId && !t.completed_at),
+    () =>
+      tasks
+        .filter((t) => t.list_id === listId && !t.completed_at)
+        .sort((a, b) => a.position - b.position || a.created_at.localeCompare(b.created_at)),
     [tasks, listId],
   )
   const done = useMemo(
@@ -31,7 +37,6 @@ export default function ListPage() {
     [tasks, listId],
   )
 
-  // если хотя бы треть активных задач распознана как товары — включаем режим покупок
   const shoppingMode =
     active.length > 0 &&
     active.filter((t) => t.category).length >= Math.max(1, Math.ceil(active.length / 3))
@@ -49,7 +54,6 @@ export default function ListPage() {
     )
   }, [active, shoppingMode])
 
-  // частые покупки: что чаще всего выполняли в этом списке и чего сейчас нет
   const frequent = useMemo(() => {
     const counts = new Map<string, { title: string; n: number }>()
     for (const t of done) {
@@ -68,14 +72,40 @@ export default function ListPage() {
     return <p className="px-7 py-8 text-ink-faint">Список не найден</p>
   }
 
+  const quickDate = (t: Task, due: string | null) =>
+    updateTask.mutate({ id: t.id, due_date: due })
+
+  const boughtToday = done.length
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">
           {list.emoji ? `${list.emoji} ` : ''}{list.name}
         </h1>
         <DeleteListButton listId={list.id} listName={list.name} onDeleted={() => navigate('/')} />
       </div>
+
+      {/* Режим магазина: счётчик куплено + очистка */}
+      {shoppingMode && (active.length > 0 || boughtToday > 0) && (
+        <div className="mb-3 flex items-center justify-between rounded-xl bg-surface-1 px-3 py-2 text-sm">
+          <span className="text-ink-dim">
+            🛒 Куплено {boughtToday} · осталось {active.length}
+          </span>
+          {boughtToday > 0 && (
+            <button
+              onClick={() => {
+                if (confirm('Убрать купленные товары из списка?')) {
+                  done.forEach((t) => deleteTask.mutate(t))
+                }
+              }}
+              className="rounded-lg px-2 py-1 text-xs text-ink-faint transition hover:bg-surface-2 hover:text-ink"
+            >
+              Убрать купленное
+            </button>
+          )}
+        </div>
+      )}
 
       <QuickAdd listId={list.id} placeholder={`Добавить в «${list.name}»…`} />
 
@@ -93,10 +123,17 @@ export default function ListPage() {
         </div>
       )}
 
+      {active.length > 0 && <SwipeHint />}
+
       {active.length === 0 && (
-        <p className="px-3 py-8 text-center text-ink-faint">Список пуст</p>
+        <EmptyState
+          icon={list.emoji ?? '📝'}
+          text={`Список «${list.name}» пуст`}
+          hint="Добавьте пункты через строку выше. В покупках можно вписать сразу несколько через запятую или с новой строки."
+        />
       )}
 
+      {/* Покупки: группировка по отделам, крупные строки */}
       {grouped
         ? grouped.map(([category, items]) => (
             <section key={category} className="mb-4">
@@ -107,6 +144,7 @@ export default function ListPage() {
                 <TaskItem
                   key={t.id}
                   task={t}
+                  big
                   onToggle={(task) => toggleComplete.mutate(task)}
                   onDelete={(task) => deleteTask.mutate(task)}
                   onOpen={setEditing}
@@ -114,15 +152,17 @@ export default function ListPage() {
               ))}
             </section>
           ))
-        : active.map((t) => (
-            <TaskItem
-              key={t.id}
-              task={t}
+        : /* Обычный список: перетаскивание + быстрые даты */
+          active.length > 0 && (
+            <SortableTaskList
+              tasks={active}
               onToggle={(task) => toggleComplete.mutate(task)}
               onDelete={(task) => deleteTask.mutate(task)}
               onOpen={setEditing}
+              onQuickDate={quickDate}
+              onReorder={(ids) => reorder.mutate(ids)}
             />
-          ))}
+          )}
 
       {done.length > 0 && (
         <div className="mt-5">
@@ -130,7 +170,7 @@ export default function ListPage() {
             onClick={() => setShowDone(!showDone)}
             className="px-3 text-sm font-medium text-ink-faint transition hover:text-ink-dim"
           >
-            {showDone ? '▾' : '▸'} Выполненные — {done.length}
+            {showDone ? '▾' : '▸'} {shoppingMode ? 'Куплено' : 'Выполненные'} — {done.length}
           </button>
           {showDone && (
             <div className="mt-1 opacity-60">

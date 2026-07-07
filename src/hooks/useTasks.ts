@@ -81,6 +81,33 @@ export function useTaskMutations() {
     },
   })
 
+  // добавить сразу несколько задач (список покупок за один раз)
+  const addMany = useMutation({
+    mutationFn: async (input: { items: TaskInput[]; list_id: string }) => {
+      const rows = input.items.map((it) => ({
+        workspace_id: wsId,
+        created_by: userId,
+        title: it.title,
+        list_id: input.list_id,
+        due_date: it.due_date ?? null,
+        recurrence: it.recurrence ?? null,
+        quantity: it.quantity ?? null,
+        category: categorize(it.title),
+      }))
+      const { error } = await supabase.from('tasks').insert(rows)
+      if (error) throw error
+    },
+    onSuccess: (_d, input) => {
+      invalidate()
+      const lists = qc.getQueryData<List[]>(['lists', wsId])
+      const listName = lists?.find((l) => l.id === input.list_id)?.name ?? 'список'
+      showSnackbar({ text: `Добавлено ${input.items.length} в «${listName}»` })
+    },
+    onError: (err) => {
+      showSnackbar({ text: `Не удалось добавить: ${err.message}` })
+    },
+  })
+
   const updateTask = useMutation({
     mutationFn: async ({ id, ...patch }: Partial<Task> & { id: string }) => {
       delete (patch as Record<string, unknown>).assignee
@@ -173,5 +200,31 @@ export function useTaskMutations() {
     },
   })
 
-  return { addTask, updateTask, toggleComplete, deleteTask }
+  // сохранить порядок после перетаскивания: пишем position = индекс
+  const reorder = useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      await Promise.all(
+        orderedIds.map((id, i) =>
+          supabase.from('tasks').update({ position: i }).eq('id', id),
+        ),
+      )
+    },
+    onMutate: async (orderedIds) => {
+      await qc.cancelQueries({ queryKey: key })
+      const prev = qc.getQueryData<Task[]>(key)
+      qc.setQueryData<Task[]>(key, (old) =>
+        (old ?? []).map((t) => {
+          const i = orderedIds.indexOf(t.id)
+          return i >= 0 ? { ...t, position: i } : t
+        }),
+      )
+      return { prev }
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(key, ctx.prev)
+    },
+    onSettled: invalidate,
+  })
+
+  return { addTask, addMany, updateTask, toggleComplete, deleteTask, reorder }
 }

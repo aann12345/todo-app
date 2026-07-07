@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../hooks/useWorkspace'
@@ -56,6 +57,9 @@ export default function MembersPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
+      <Link to="/settings" className="mb-2 inline-block text-sm text-ink-dim transition hover:text-ink">
+        ‹ Настройки
+      </Link>
       <h1 className="mb-5 text-2xl font-bold">Участники — {current.name}</h1>
 
       <section className="mb-6 space-y-1">

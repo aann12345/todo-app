@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useTaskMutations } from '../hooks/useTasks'
-import { parseTaskInput } from '../lib/nlDate'
+import { parseTaskInput, splitItems } from '../lib/nlDate'
 import { dueLabel } from '../lib/dates'
 import { recurrenceLabel } from '../lib/recurrence'
 
@@ -14,22 +14,34 @@ export default function QuickAdd({
   placeholder?: string
 }) {
   const [title, setTitle] = useState('')
-  const { addTask } = useTaskMutations()
+  const { addTask, addMany } = useTaskMutations()
 
+  const items = useMemo(() => splitItems(title), [title])
+  const multi = items.length > 1
   const parsed = useMemo(() => parseTaskInput(title), [title])
   const hasHint =
-    title.trim() && (parsed.due_date || parsed.recurrence || parsed.quantity)
+    !multi && title.trim() && (parsed.due_date || parsed.recurrence || parsed.quantity)
 
   function submit(e: FormEvent) {
     e.preventDefault()
-    if (!parsed.title || !listId) return
-    addTask.mutate({
-      title: parsed.title,
-      list_id: listId,
-      due_date: parsed.due_date ?? dueDate ?? null,
-      recurrence: parsed.recurrence,
-      quantity: parsed.quantity,
-    })
+    if (!listId || items.length === 0) return
+    if (multi) {
+      addMany.mutate({
+        list_id: listId,
+        items: items.map((raw) => {
+          const p = parseTaskInput(raw)
+          return { title: p.title, list_id: listId, due_date: p.due_date ?? dueDate ?? null, recurrence: p.recurrence, quantity: p.quantity }
+        }),
+      })
+    } else {
+      addTask.mutate({
+        title: parsed.title,
+        list_id: listId,
+        due_date: parsed.due_date ?? dueDate ?? null,
+        recurrence: parsed.recurrence,
+        quantity: parsed.quantity,
+      })
+    }
     setTitle('')
   }
 
@@ -52,10 +64,15 @@ export default function QuickAdd({
             type="submit"
             className="shrink-0 rounded-lg bg-accent px-3.5 py-1.5 text-sm font-semibold text-white transition hover:brightness-110"
           >
-            Добавить
+            {multi ? `+${items.length}` : 'Добавить'}
           </button>
         )}
       </div>
+      {multi && (
+        <p className="mt-1.5 px-3 text-xs text-accent">
+          Будет добавлено пунктов: {items.length} (через запятую)
+        </p>
+      )}
       {hasHint && (
         <div className="mt-1.5 flex flex-wrap items-center gap-2 px-3 text-xs text-ink-dim">
           <span className="text-ink-faint">Распознано:</span>

@@ -7,10 +7,11 @@ import { todayISO } from '../lib/dates'
 import TaskItem from '../components/TaskItem'
 import TaskEditor from '../components/TaskEditor'
 import QuickAdd from '../components/QuickAdd'
+import EmptyState from '../components/EmptyState'
 import type { Task } from '../types'
 
 export default function TodayPage() {
-  const { tasks } = useTasks()
+  const { tasks, isLoading } = useTasks()
   const lists = useLists()
   const { toggleComplete, deleteTask } = useTaskMutations()
   const [editing, setEditing] = useState<Task | null>(null)
@@ -70,10 +71,23 @@ export default function TodayPage() {
       )}
 
       <section>
-        {dueToday.length === 0 && overdue.length === 0 && (
-          <p className="px-3 py-8 text-center text-ink-faint">
-            На сегодня всё сделано 🎉
-          </p>
+        {dueToday.length === 0 && overdue.length === 0 && !isLoading && (
+          doneToday.length > 0 ? (
+            <p className="px-3 py-8 text-center text-ink-faint">
+              На сегодня всё сделано 🎉
+            </p>
+          ) : (
+            <EmptyState
+              icon="👋"
+              text="Здесь появятся задачи на сегодня"
+              hint={
+                <>
+                  Нажмите оранжевую «+» внизу или строку выше. Попробуйте написать
+                  «купить хлеб завтра» — дата подставится сама.
+                </>
+              }
+            />
+          )
         )}
         {dueToday.map((t) => (
           <TaskItem

@@ -7,7 +7,7 @@ import { WorkspaceProvider, useWorkspace } from './hooks/useWorkspace'
 import { useRealtimeSync } from './hooks/useRealtimeSync'
 import Sidebar from './components/Sidebar'
 import TodayPage from './pages/TodayPage'
-import UpcomingPage from './pages/UpcomingPage'
+import AgendaPage from './pages/AgendaPage'
 import MyTasksPage from './pages/MyTasksPage'
 import ListPage from './pages/ListPage'
 import MembersPage from './pages/MembersPage'
@@ -84,7 +84,10 @@ function Shell() {
 
         <Routes>
           <Route path="/" element={<TodayPage />} />
-          <Route path="/upcoming" element={<UpcomingPage />} />
+          <Route path="/tomorrow" element={<AgendaPage range="tomorrow" />} />
+          <Route path="/week" element={<AgendaPage range="week" />} />
+          <Route path="/month" element={<AgendaPage range="month" />} />
+          <Route path="/someday" element={<AgendaPage range="someday" />} />
           <Route path="/mine" element={<MyTasksPage />} />
           <Route path="/list/:listId" element={<ListPage />} />
           <Route path="/members" element={<MembersPage />} />

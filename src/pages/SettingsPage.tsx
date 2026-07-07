@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { versionLabel } from '../lib/version'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
@@ -41,7 +42,7 @@ function Toggle({
 
 export default function SettingsPage() {
   const userId = useUserId()
-  const { myProfile } = useWorkspace()
+  const { myProfile, current, members } = useWorkspace()
   const qc = useQueryClient()
   const [pushOn, setPushOn] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -92,6 +93,24 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
       <h1 className="mb-5 text-2xl font-bold">Настройки</h1>
+
+      {current && current.kind !== 'personal' && (
+        <Link
+          to="/members"
+          className="mb-4 flex items-center justify-between rounded-2xl bg-surface-1 p-5 transition hover:bg-surface-2"
+        >
+          <div>
+            <p className="font-semibold">👥 Участники — {current.name}</p>
+            <p className="mt-0.5 text-xs text-ink-faint">
+              Приглашения по коду и список участников
+            </p>
+          </div>
+          <span className="flex items-center gap-2 text-ink-dim">
+            {members.length}
+            <span className="text-lg">›</span>
+          </span>
+        </Link>
+      )}
 
       <section className="rounded-2xl bg-surface-1 p-5">
         <h2 className="mb-1 font-semibold">🔔 Уведомления</h2>

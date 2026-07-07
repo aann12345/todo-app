@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../hooks/useWorkspace'
 import { useLists, useListMutations } from '../hooks/useLists'
 import { useTasks } from '../hooks/useTasks'
-import { todayISO } from '../lib/dates'
+import { isoIn, todayISO } from '../lib/dates'
 import Avatar from './Avatar'
 
 function navCls({ isActive }: { isActive: boolean }) {
@@ -14,7 +14,7 @@ function navCls({ isActive }: { isActive: boolean }) {
 }
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
-  const { current, myProfile, members } = useWorkspace()
+  const { myProfile } = useWorkspace()
   const lists = useLists()
   const { addList } = useListMutations()
   const { tasks } = useTasks()
@@ -23,6 +23,8 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   const today = todayISO()
   const todayCount = tasks.filter((t) => !t.completed_at && t.due_date && t.due_date <= today).length
+  const tomorrow = isoIn(1)
+  const tomorrowCount = tasks.filter((t) => !t.completed_at && t.due_date === tomorrow).length
 
   function submitList(e: FormEvent) {
     e.preventDefault()
@@ -41,18 +43,22 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           <span>📆 Сегодня</span>
           {todayCount > 0 && <span className="text-xs text-ink-faint">{todayCount}</span>}
         </NavLink>
-        <NavLink to="/upcoming" className={navCls}>
-          <span>🗓️ Предстоящее</span>
+        <NavLink to="/tomorrow" className={navCls}>
+          <span>☀️ Завтра</span>
+          {tomorrowCount > 0 && <span className="text-xs text-ink-faint">{tomorrowCount}</span>}
+        </NavLink>
+        <NavLink to="/week" className={navCls}>
+          <span>🗓️ Ближайшие 7 дней</span>
+        </NavLink>
+        <NavLink to="/month" className={navCls}>
+          <span>📆 В этом месяце</span>
+        </NavLink>
+        <NavLink to="/someday" className={navCls}>
+          <span>🗄️ Долгий ящик</span>
         </NavLink>
         <NavLink to="/mine" className={navCls}>
           <span>👤 Мои задачи</span>
         </NavLink>
-        {current?.kind !== 'personal' && (
-          <NavLink to="/members" className={navCls}>
-            <span>👥 Участники</span>
-            <span className="text-xs text-ink-faint">{members.length}</span>
-          </NavLink>
-        )}
       </nav>
 
       {/* Списки */}
