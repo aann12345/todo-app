@@ -18,8 +18,9 @@ export default function MyTasksPage() {
     return l ? `${l.emoji ?? ''} ${l.name}`.trim() : ''
   }
 
+  // мои задачи: назначенные лично мне + общие («Вместе»)
   const mine = tasks
-    .filter((t) => !t.completed_at && t.assignee_id === userId)
+    .filter((t) => !t.completed_at && (t.assignee_id === userId || t.assignee_all))
     .sort((a, b) => (a.due_date ?? '9999').localeCompare(b.due_date ?? '9999'))
 
   return (

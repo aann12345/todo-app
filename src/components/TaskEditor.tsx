@@ -72,6 +72,7 @@ export default function TaskEditor({ task, onClose }: { task: Task; onClose: () 
   const [dueDate, setDueDate] = useState(task.due_date ?? '')
   const [priority, setPriority] = useState<number>(task.priority)
   const [assigneeId, setAssigneeId] = useState(task.assignee_id ?? '')
+  const [assigneeAll, setAssigneeAll] = useState(task.assignee_all)
   const [quantity, setQuantity] = useState(task.quantity ?? '')
   const [checklist, setChecklist] = useState<ChecklistItem[]>(task.checklist ?? [])
   const [newItem, setNewItem] = useState('')
@@ -104,7 +105,8 @@ export default function TaskEditor({ task, onClose }: { task: Task; onClose: () 
       list_id: listId,
       due_date: dueDate || null,
       priority: priority as Task['priority'],
-      assignee_id: assigneeId || null,
+      assignee_id: assigneeAll ? null : assigneeId || null,
+      assignee_all: assigneeAll,
       recurrence,
       quantity: quantity.trim() || null,
       checklist,
@@ -257,19 +259,38 @@ export default function TaskEditor({ task, onClose }: { task: Task; onClose: () 
             <span className="mb-1 block text-xs font-medium text-ink-dim">Исполнитель</span>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => setAssigneeId('')}
+                onClick={() => {
+                  setAssigneeId('')
+                  setAssigneeAll(false)
+                }}
                 className={`rounded-lg px-3 py-1.5 text-sm transition ${
-                  !assigneeId ? 'bg-surface-3' : 'opacity-60 hover:opacity-100'
+                  !assigneeId && !assigneeAll ? 'bg-surface-3' : 'opacity-60 hover:opacity-100'
                 }`}
               >
                 Никто
               </button>
+              <button
+                onClick={() => {
+                  setAssigneeAll(true)
+                  setAssigneeId('')
+                }}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition ${
+                  assigneeAll ? 'bg-surface-3' : 'opacity-60 hover:opacity-100'
+                }`}
+              >
+                👥 Вместе
+              </button>
               {members.map((m) => (
                 <button
                   key={m.user_id}
-                  onClick={() => setAssigneeId(m.user_id)}
+                  onClick={() => {
+                    setAssigneeId(m.user_id)
+                    setAssigneeAll(false)
+                  }}
                   className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition ${
-                    assigneeId === m.user_id ? 'bg-surface-3' : 'opacity-60 hover:opacity-100'
+                    assigneeId === m.user_id && !assigneeAll
+                      ? 'bg-surface-3'
+                      : 'opacity-60 hover:opacity-100'
                   }`}
                 >
                   <Avatar profile={m.profile} size={18} />

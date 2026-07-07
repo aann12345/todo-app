@@ -116,6 +116,7 @@ export function useTaskMutations() {
           due_date: nextOccurrence(task.recurrence, task.due_date),
           quantity: task.quantity,
           category: task.category,
+          assignee_all: task.assignee_all,
         })
         if (err2) throw err2
       }

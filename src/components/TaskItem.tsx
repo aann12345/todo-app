@@ -118,7 +118,16 @@ export default function TaskItem({
           )}
         </div>
 
-        {task.assignee && <Avatar profile={task.assignee} size={22} />}
+        {task.assignee_all ? (
+          <span
+            className="flex h-[22px] shrink-0 items-center rounded-full bg-surface-2 px-2 text-xs text-ink-dim"
+            title="Задача для всех"
+          >
+            👥 Вместе
+          </span>
+        ) : (
+          task.assignee && <Avatar profile={task.assignee} size={22} />
+        )}
       </div>
     </div>
   )

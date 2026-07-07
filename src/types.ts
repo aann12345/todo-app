@@ -70,6 +70,8 @@ export interface Task {
   quantity: string | null
   category: string | null
   checklist: ChecklistItem[]
+  /** задача для всех участников пространства («Вместе») */
+  assignee_all: boolean
   assignee?: Profile | null
 }
 
