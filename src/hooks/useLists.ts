@@ -43,11 +43,11 @@ export function useListMutations() {
     onSuccess: invalidate,
   })
 
-  const renameList = useMutation({
-    mutationFn: async (input: { id: string; name: string }) => {
+  const updateList = useMutation({
+    mutationFn: async (input: { id: string; name: string; emoji: string | null }) => {
       const { error } = await supabase
         .from('lists')
-        .update({ name: input.name })
+        .update({ name: input.name, emoji: input.emoji })
         .eq('id', input.id)
       if (error) throw error
     },
@@ -65,5 +65,5 @@ export function useListMutations() {
     },
   })
 
-  return { addList, renameList, deleteList }
+  return { addList, updateList, deleteList }
 }

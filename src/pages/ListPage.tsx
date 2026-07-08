@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useTasks, useTaskMutations } from '../hooks/useTasks'
-import { useLists, useListMutations } from '../hooks/useLists'
+import { useLists } from '../hooks/useLists'
 import { CATEGORY_ORDER } from '../lib/categories'
 import TaskItem from '../components/TaskItem'
 import TaskEditor from '../components/TaskEditor'
@@ -9,15 +9,16 @@ import QuickAdd from '../components/QuickAdd'
 import EmptyState from '../components/EmptyState'
 import SwipeHint from '../components/SwipeHint'
 import SortableTaskList from '../components/SortableTaskList'
+import ListEditDialog from '../components/ListEditDialog'
 import type { Task } from '../types'
 
 export default function ListPage() {
   const { listId } = useParams<{ listId: string }>()
-  const navigate = useNavigate()
   const { tasks } = useTasks()
   const lists = useLists()
   const { toggleComplete, deleteTask, addTask, updateTask, reorder } = useTaskMutations()
   const [editing, setEditing] = useState<Task | null>(null)
+  const [editingList, setEditingList] = useState(false)
   const [showDone, setShowDone] = useState(false)
 
   const list = lists.find((l) => l.id === listId)
@@ -83,7 +84,13 @@ export default function ListPage() {
         <h1 className="text-2xl font-bold">
           {list.emoji ? `${list.emoji} ` : ''}{list.name}
         </h1>
-        <DeleteListButton listId={list.id} listName={list.name} onDeleted={() => navigate('/')} />
+        <button
+          onClick={() => setEditingList(true)}
+          className="rounded-lg px-2.5 py-1.5 text-sm text-ink-dim transition hover:bg-surface-2 hover:text-ink"
+          title="Изменить список"
+        >
+          ✏️ Изменить
+        </button>
       </div>
 
       {/* Режим магазина: счётчик куплено + очистка */}
@@ -188,30 +195,7 @@ export default function ListPage() {
       )}
 
       {editing && <TaskEditor task={editing} onClose={() => setEditing(null)} />}
+      {editingList && <ListEditDialog list={list} onClose={() => setEditingList(false)} />}
     </div>
-  )
-}
-
-function DeleteListButton({
-  listId,
-  listName,
-  onDeleted,
-}: {
-  listId: string
-  listName: string
-  onDeleted: () => void
-}) {
-  const { deleteList } = useListMutations()
-  return (
-    <button
-      onClick={async () => {
-        if (!confirm(`Удалить список «${listName}» со всеми задачами?`)) return
-        await deleteList.mutateAsync(listId)
-        onDeleted()
-      }}
-      className="rounded-lg px-2.5 py-1.5 text-xs text-ink-faint transition hover:bg-surface-2 hover:text-p1"
-    >
-      Удалить список
-    </button>
   )
 }
