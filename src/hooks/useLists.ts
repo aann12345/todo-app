@@ -65,5 +65,26 @@ export function useListMutations() {
     },
   })
 
-  return { addList, updateList, deleteList }
+  const reorderLists = useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      await Promise.all(
+        orderedIds.map((id, i) => supabase.from('lists').update({ position: i }).eq('id', id)),
+      )
+    },
+    onMutate: async (orderedIds) => {
+      const qkey = ['lists', wsId]
+      await qc.cancelQueries({ queryKey: qkey })
+      const prev = qc.getQueryData<List[]>(qkey)
+      qc.setQueryData<List[]>(qkey, (old) =>
+        [...(old ?? [])].sort((a, b) => orderedIds.indexOf(a.id) - orderedIds.indexOf(b.id)),
+      )
+      return { prev }
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['lists', wsId], ctx.prev)
+    },
+    onSettled: invalidate,
+  })
+
+  return { addList, updateList, deleteList, reorderLists }
 }
