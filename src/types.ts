@@ -7,6 +7,11 @@ export interface Profile {
   notify_added?: boolean
   notify_assigned?: boolean
   notify_digest?: boolean
+  digest_time?: string
+  digest_scope?: 'today' | 'tomorrow' | 'today_tomorrow'
+  weekly_enabled?: boolean
+  weekly_day?: number
+  weekly_time?: string
 }
 
 export interface ChecklistItem {
@@ -72,6 +77,9 @@ export interface Task {
   checklist: ChecklistItem[]
   /** задача для всех участников пространства («Вместе») */
   assignee_all: boolean
+  /** момент напоминания (UTC ISO), вычисляется из даты+времени */
+  remind_at: string | null
+  reminded: boolean
   assignee?: Profile | null
 }
 

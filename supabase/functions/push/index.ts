@@ -121,19 +121,81 @@ async function handleTaskAssigned(rec: TaskRecord) {
   })
 }
 
-async function handleDigest() {
+// ---------- Ежеминутный тик: напоминания + сводки по расписанию ----------
+
+const MSK_OFFSET_MS = 3 * 60 * 60 * 1000 // Москва = UTC+3 (без перехода на летнее время)
+
+function mskNow() {
+  const d = new Date(Date.now() + MSK_OFFSET_MS)
+  const hhmm = `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`
+  const isoDate = d.toISOString().slice(0, 10)
+  return { hhmm, weekday: d.getUTCDay(), isoDate }
+}
+
+// 1) Отправить сработавшие напоминания у задач
+async function runReminders() {
   const { supabase } = await init()
-  const today = new Date().toISOString().slice(0, 10)
+  const nowIso = new Date().toISOString()
+  const { data: due } = await supabase
+    .from('tasks')
+    .select('id, title, workspace_id, assignee_id, assignee_all, created_by, remind_at')
+    .lte('remind_at', nowIso)
+    .eq('reminded', false)
+    .is('completed_at', null)
+
+  for (const t of (due ?? []) as TaskRecord[] & { remind_at: string }[]) {
+    // получатели: исполнитель / все участники (Вместе) / автор
+    let recipients: string[]
+    if (t.assignee_all) {
+      const { data: members } = await supabase
+        .from('workspace_members')
+        .select('user_id')
+        .eq('workspace_id', t.workspace_id)
+      recipients = (members ?? []).map((m) => m.user_id)
+    } else {
+      recipients = [t.assignee_id ?? t.created_by]
+    }
+    await sendTo(await subsForUsers(recipients), {
+      title: '🔔 Напоминание',
+      body: t.title,
+    })
+    await supabase.from('tasks').update({ reminded: true }).eq('id', t.id)
+  }
+}
+
+async function countTasks(wsIds: string[], filter: (q: any) => any): Promise<number> {
+  const { supabase } = await init()
+  let q = supabase
+    .from('tasks')
+    .select('id', { count: 'exact', head: true })
+    .in('workspace_id', wsIds)
+    .is('completed_at', null)
+  q = filter(q)
+  const { count } = await q
+  return count ?? 0
+}
+
+// 2) Сводки, у которых наступило запланированное время
+async function runDigests() {
+  const { supabase } = await init()
+  const { hhmm, weekday, isoDate } = mskNow()
   const { data: subs } = await supabase.from('push_subscriptions').select('*')
   const userIds = [...new Set((subs ?? []).map((s) => s.user_id))]
 
+  const tomorrow = new Date(Date.now() + MSK_OFFSET_MS + 24 * 3600 * 1000)
+    .toISOString()
+    .slice(0, 10)
+  const weekEnd = new Date(Date.now() + MSK_OFFSET_MS + 7 * 24 * 3600 * 1000)
+    .toISOString()
+    .slice(0, 10)
+
   for (const uid of userIds) {
-    const { data: profile } = await supabase
+    const { data: p } = await supabase
       .from('profiles')
-      .select('notify_digest')
+      .select('notify_digest, digest_time, digest_scope, weekly_enabled, weekly_day, weekly_time')
       .eq('id', uid)
       .single()
-    if (profile?.notify_digest === false) continue
+    if (!p) continue
 
     const { data: memberships } = await supabase
       .from('workspace_members')
@@ -141,28 +203,39 @@ async function handleDigest() {
       .eq('user_id', uid)
     const wsIds = (memberships ?? []).map((m) => m.workspace_id)
     if (!wsIds.length) continue
+    const userSubs = (subs ?? []).filter((s) => s.user_id === uid) as Sub[]
 
-    const { count: dueCount } = await supabase
-      .from('tasks')
-      .select('id', { count: 'exact', head: true })
-      .in('workspace_id', wsIds)
-      .is('completed_at', null)
-      .lte('due_date', today)
-    const { count: overdueCount } = await supabase
-      .from('tasks')
-      .select('id', { count: 'exact', head: true })
-      .in('workspace_id', wsIds)
-      .is('completed_at', null)
-      .lt('due_date', today)
+    // ежедневная сводка
+    if (p.notify_digest !== false && p.digest_time === hhmm) {
+      const parts: string[] = []
+      if (p.digest_scope === 'today' || p.digest_scope === 'today_tomorrow') {
+        const n = await countTasks(wsIds, (q) => q.lte('due_date', isoDate))
+        const overdue = await countTasks(wsIds, (q) => q.lt('due_date', isoDate))
+        if (n) parts.push(`сегодня ${n}${overdue ? ` (просрочено ${overdue})` : ''}`)
+      }
+      if (p.digest_scope === 'tomorrow' || p.digest_scope === 'today_tomorrow') {
+        const n = await countTasks(wsIds, (q) => q.eq('due_date', tomorrow))
+        if (n) parts.push(`завтра ${n}`)
+      }
+      if (parts.length) {
+        await sendTo(userSubs, { title: 'Задачи на день 📋', body: parts.join(', ') })
+      }
+    }
 
-    if (!dueCount) continue
-
-    const overdue = overdueCount ? `, из них ${overdueCount} просрочено` : ''
-    await sendTo(
-      (subs ?? []).filter((s) => s.user_id === uid) as Sub[],
-      { title: 'Доброе утро 👋', body: `На сегодня ${dueCount} задач(и)${overdue}` },
-    )
+    // недельная сводка
+    if (p.weekly_enabled && p.weekly_day === weekday && p.weekly_time === hhmm) {
+      const n = await countTasks(wsIds, (q) => q.gte('due_date', isoDate).lte('due_date', weekEnd))
+      await sendTo(userSubs, {
+        title: 'План на неделю 🗓️',
+        body: n ? `На ближайшие 7 дней задач: ${n}` : 'На неделю задач пока нет',
+      })
+    }
   }
+}
+
+async function handleTick() {
+  await runReminders()
+  await runDigests()
 }
 
 Deno.serve(async (req) => {
@@ -175,7 +248,7 @@ Deno.serve(async (req) => {
 
     if (type === 'task_added') await handleTaskAdded(record)
     else if (type === 'task_assigned') await handleTaskAssigned(record)
-    else if (type === 'digest') await handleDigest()
+    else if (type === 'tick') await handleTick()
     else return new Response(`unknown type: ${type}`, { status: 400 })
 
     return new Response('ok')

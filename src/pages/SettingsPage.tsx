@@ -67,7 +67,7 @@ export default function SettingsPage() {
     }
   }
 
-  async function setPref(field: 'notify_added' | 'notify_assigned' | 'notify_digest', v: boolean) {
+  async function setPref(field: string, v: string | boolean | number) {
     await supabase.from('profiles').update({ [field]: v }).eq('id', userId)
     qc.invalidateQueries({ queryKey: ['profile', userId] })
   }
@@ -83,12 +83,9 @@ export default function SettingsPage() {
       title: 'Задачи, назначенные мне',
       hint: '«Вам назначили задачу»',
     },
-    {
-      field: 'notify_digest' as const,
-      title: 'Утренняя сводка',
-      hint: 'В 7:00 — сколько задач на сегодня',
-    },
   ]
+
+  const WEEKDAYS = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
@@ -152,6 +149,107 @@ export default function SettingsPage() {
               ))}
             </div>
           </>
+        )}
+      </section>
+
+      {/* Расписание сводок */}
+      <section className={`mt-4 rounded-2xl bg-surface-1 p-5 ${supported && pushOn ? '' : 'opacity-50'}`}>
+        <h2 className="mb-3 font-semibold">🗓️ Ежедневная сводка</h2>
+
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[15px]">Присылать сводку</p>
+          <Toggle
+            checked={myProfile?.notify_digest !== false}
+            onChange={(v) => setPref('notify_digest', v)}
+            disabled={!pushOn}
+          />
+        </div>
+
+        <div className={`mt-3 space-y-3 ${myProfile?.notify_digest !== false ? '' : 'opacity-40'}`}>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[15px]">Во сколько</p>
+            <input
+              type="time"
+              className="rounded-lg bg-surface-2 px-3 py-2 text-sm outline-none"
+              value={myProfile?.digest_time ?? '07:00'}
+              onChange={(e) => setPref('digest_time', e.target.value)}
+              disabled={!pushOn}
+            />
+          </div>
+          <div>
+            <p className="mb-1.5 text-[15px]">О каких задачах</p>
+            <div className="flex flex-wrap gap-1.5">
+              {(
+                [
+                  ['today', 'На сегодня'],
+                  ['tomorrow', 'На завтра'],
+                  ['today_tomorrow', 'Сегодня и завтра'],
+                ] as const
+              ).map(([val, label]) => (
+                <button
+                  key={val}
+                  onClick={() => setPref('digest_scope', val)}
+                  disabled={!pushOn}
+                  className={`rounded-full px-3 py-1.5 text-sm transition ${
+                    (myProfile?.digest_scope ?? 'today') === val
+                      ? 'bg-accent font-medium text-white'
+                      : 'bg-surface-2 text-ink-dim hover:text-ink'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Недельная сводка */}
+      <section className={`mt-4 rounded-2xl bg-surface-1 p-5 ${supported && pushOn ? '' : 'opacity-50'}`}>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="font-semibold">📅 Сводка на неделю</h2>
+            <p className="mt-0.5 text-xs text-ink-faint">Например, в воскресенье вечером — план на 7 дней</p>
+          </div>
+          <Toggle
+            checked={Boolean(myProfile?.weekly_enabled)}
+            onChange={(v) => setPref('weekly_enabled', v)}
+            disabled={!pushOn}
+          />
+        </div>
+
+        {myProfile?.weekly_enabled && (
+          <div className="mt-3 space-y-3">
+            <div>
+              <p className="mb-1.5 text-[15px]">В какой день</p>
+              <div className="flex flex-wrap gap-1.5">
+                {WEEKDAYS.map((d, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setPref('weekly_day', i)}
+                    disabled={!pushOn}
+                    className={`h-9 w-9 rounded-full text-sm transition ${
+                      (myProfile?.weekly_day ?? 0) === i
+                        ? 'bg-accent font-medium text-white'
+                        : 'bg-surface-2 text-ink-dim hover:text-ink'
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[15px]">Во сколько</p>
+              <input
+                type="time"
+                className="rounded-lg bg-surface-2 px-3 py-2 text-sm outline-none"
+                value={myProfile?.weekly_time ?? '18:00'}
+                onChange={(e) => setPref('weekly_time', e.target.value)}
+                disabled={!pushOn}
+              />
+            </div>
+          </div>
         )}
       </section>
 

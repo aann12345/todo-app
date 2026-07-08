@@ -1,6 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { dueLabel, isOverdue, isoIn, todayISO } from '../lib/dates'
 import { recurrenceLabel } from '../lib/recurrence'
+import { remindLabel } from '../lib/remind'
 import type { Task } from '../types'
 import Avatar from './Avatar'
 
@@ -123,6 +124,7 @@ export default function TaskItem({
                   📅 {dueLabel(task.due_date)}
                 </button>
               )}
+              {task.remind_at && <span>🔔 {remindLabel(task.remind_at)}</span>}
               {task.recurrence && <span>🔁 {recurrenceLabel(task.recurrence)}</span>}
               {checklistTotal > 0 && (
                 <span className={checklistDone === checklistTotal ? 'text-green-500' : ''}>

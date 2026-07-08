@@ -5,6 +5,7 @@ import { useWorkspace } from '../hooks/useWorkspace'
 import { useComments } from '../hooks/useComments'
 import { WEEKDAY_LABELS } from '../lib/recurrence'
 import { todayISO } from '../lib/dates'
+import { combineDateTime, timeFromISO } from '../lib/remind'
 import type { ChecklistItem, Recurrence, Task } from '../types'
 import Avatar from './Avatar'
 
@@ -70,6 +71,7 @@ export default function TaskEditor({ task, onClose }: { task: Task; onClose: () 
   const [notes, setNotes] = useState(task.notes)
   const [listId, setListId] = useState(task.list_id)
   const [dueDate, setDueDate] = useState(task.due_date ?? '')
+  const [remindTime, setRemindTime] = useState(task.remind_at ? timeFromISO(task.remind_at) : '')
   const [priority, setPriority] = useState<number>(task.priority)
   const [assigneeId, setAssigneeId] = useState(task.assignee_id ?? '')
   const [assigneeAll, setAssigneeAll] = useState(task.assignee_all)
@@ -98,6 +100,8 @@ export default function TaskEditor({ task, onClose }: { task: Task; onClose: () 
     const recurrence: Recurrence | null = freq
       ? { freq, interval: Math.max(1, interval), ...(freq === 'weekly' && byweekday.length ? { byweekday } : {}) }
       : null
+    // напоминание: дата + время → момент UTC; сброс «отправлено» при изменении
+    const remind_at = dueDate && remindTime ? combineDateTime(dueDate, remindTime) : null
     await updateTask.mutateAsync({
       id: task.id,
       title: title.trim(),
@@ -110,6 +114,8 @@ export default function TaskEditor({ task, onClose }: { task: Task; onClose: () 
       recurrence,
       quantity: quantity.trim() || null,
       checklist,
+      remind_at,
+      reminded: remind_at !== task.remind_at ? false : task.reminded,
     })
     onClose()
   }
@@ -225,6 +231,45 @@ export default function TaskEditor({ task, onClose }: { task: Task; onClose: () 
               onChange={(e) => setDueDate(e.target.value)}
             />
           </label>
+        </div>
+
+        {/* Напоминание по времени — доступно, когда задан срок */}
+        <div className="mt-3">
+          <span className="mb-1 block text-xs font-medium text-ink-dim">
+            🔔 Напомнить {!dueDate && <span className="text-ink-faint">(сначала укажите срок)</span>}
+          </span>
+          <div className="flex items-center gap-2">
+            <input
+              type="time"
+              disabled={!dueDate}
+              className="rounded-lg bg-surface-2 px-3 py-2 text-sm outline-none disabled:opacity-40"
+              value={remindTime}
+              onChange={(e) => setRemindTime(e.target.value)}
+            />
+            {remindTime && (
+              <button
+                type="button"
+                onClick={() => setRemindTime('')}
+                className="rounded-lg px-2 py-1 text-xs text-ink-faint transition hover:bg-surface-2 hover:text-ink"
+              >
+                Убрать
+              </button>
+            )}
+            {dueDate && !remindTime && (
+              <div className="flex gap-1">
+                {['09:00', '12:00', '18:00'].map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setRemindTime(t)}
+                    className="rounded-full bg-surface-2 px-2.5 py-1 text-xs text-ink-dim transition hover:bg-surface-3 hover:text-ink"
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-3">

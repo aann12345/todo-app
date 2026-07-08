@@ -6,6 +6,7 @@ import { nextOccurrence } from '../lib/recurrence'
 import { categorize } from '../lib/categories'
 import { showSnackbar } from '../lib/snackbar'
 import { dueLabel } from '../lib/dates'
+import { combineDateTime, timeFromISO } from '../lib/remind'
 import type { List, Task } from '../types'
 
 const TASK_SELECT = '*, assignee:profiles!tasks_assignee_id_fkey(id, display_name, color)'
@@ -133,6 +134,12 @@ export function useTaskMutations() {
       if (error) throw error
 
       if (completing && task.recurrence && task.due_date) {
+        const nextDue = nextOccurrence(task.recurrence, task.due_date)
+        // переносим время напоминания на новую дату
+        let nextRemind: string | null = null
+        if (task.remind_at) {
+          nextRemind = combineDateTime(nextDue, timeFromISO(task.remind_at))
+        }
         const { error: err2 } = await supabase.from('tasks').insert({
           workspace_id: task.workspace_id,
           list_id: task.list_id,
@@ -142,10 +149,11 @@ export function useTaskMutations() {
           assignee_id: task.assignee_id,
           recurrence: task.recurrence,
           created_by: userId,
-          due_date: nextOccurrence(task.recurrence, task.due_date),
+          due_date: nextDue,
           quantity: task.quantity,
           category: task.category,
           assignee_all: task.assignee_all,
+          remind_at: nextRemind,
         })
         if (err2) throw err2
       }
