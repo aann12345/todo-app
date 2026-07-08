@@ -20,6 +20,15 @@ alter table public.profiles add column if not exists digest_scope text not null 
 alter table public.profiles add column if not exists weekly_enabled boolean not null default false;
 alter table public.profiles add column if not exists weekly_day int not null default 0;   -- 0=вс … 6=сб
 alter table public.profiles add column if not exists weekly_time text not null default '18:00';
+alter table public.profiles add column if not exists notify_overdue boolean not null default true;
+
+-- ---------- Уведомление для общих задач («Вместе») ----------
+-- когда задачу пометили «Вместе», уведомляем всех участников (как назначение)
+create trigger on_task_assigned_all
+  after update of assignee_all on public.tasks
+  for each row
+  when (new.assignee_all = true and old.assignee_all is distinct from new.assignee_all)
+  execute function public.notify_push('task_assigned_all');
 
 -- ---------- Cron: один тик в минуту ----------
 -- Заменяем старую утреннюю сводку на универсальный «tick», который

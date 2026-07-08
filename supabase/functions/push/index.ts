@@ -121,6 +121,24 @@ async function handleTaskAssigned(rec: TaskRecord) {
   })
 }
 
+// задачу пометили «Вместе» — уведомляем всех участников, кроме автора действия
+async function handleTaskAssignedAll(rec: TaskRecord) {
+  const { supabase } = await init()
+  const { data: members } = await supabase
+    .from('workspace_members')
+    .select('user_id, profile:profiles(notify_assigned)')
+    .eq('workspace_id', rec.workspace_id)
+  const recipients = (members ?? [])
+    .filter((m) => m.user_id !== rec.created_by)
+    .filter((m) => (m.profile as { notify_assigned?: boolean } | null)?.notify_assigned !== false)
+    .map((m) => m.user_id)
+  const due = rec.due_date ? ` — срок ${rec.due_date}` : ''
+  await sendTo(await subsForUsers(recipients), {
+    title: 'Общая задача 👥',
+    body: `«${rec.title}»${due}`,
+  })
+}
+
 // ---------- Ежеминутный тик: напоминания + сводки по расписанию ----------
 
 const MSK_OFFSET_MS = 3 * 60 * 60 * 1000 // Москва = UTC+3 (без перехода на летнее время)
@@ -192,7 +210,7 @@ async function runDigests() {
   for (const uid of userIds) {
     const { data: p } = await supabase
       .from('profiles')
-      .select('notify_digest, digest_time, digest_scope, weekly_enabled, weekly_day, weekly_time')
+      .select('notify_digest, digest_time, digest_scope, weekly_enabled, weekly_day, weekly_time, notify_overdue')
       .eq('id', uid)
       .single()
     if (!p) continue
@@ -219,6 +237,17 @@ async function runDigests() {
       }
       if (parts.length) {
         await sendTo(userSubs, { title: 'Задачи на день 📋', body: parts.join(', ') })
+      }
+
+      // отдельное уведомление о просрочке
+      if (p.notify_overdue !== false) {
+        const overdue = await countTasks(wsIds, (q) => q.lt('due_date', isoDate))
+        if (overdue) {
+          await sendTo(userSubs, {
+            title: '⚠️ Просроченные задачи',
+            body: `Не выполнено в срок: ${overdue}`,
+          })
+        }
       }
     }
 
@@ -248,6 +277,7 @@ Deno.serve(async (req) => {
 
     if (type === 'task_added') await handleTaskAdded(record)
     else if (type === 'task_assigned') await handleTaskAssigned(record)
+    else if (type === 'task_assigned_all') await handleTaskAssignedAll(record)
     else if (type === 'tick') await handleTick()
     else return new Response(`unknown type: ${type}`, { status: 400 })
 

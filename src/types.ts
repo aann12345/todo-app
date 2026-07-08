@@ -12,6 +12,7 @@ export interface Profile {
   weekly_enabled?: boolean
   weekly_day?: number
   weekly_time?: string
+  notify_overdue?: boolean
 }
 
 export interface ChecklistItem {
@@ -52,7 +53,7 @@ export interface List {
 }
 
 export interface Recurrence {
-  freq: 'daily' | 'weekly' | 'monthly'
+  freq: 'daily' | 'weekly' | 'monthly' | 'yearly'
   interval: number
   /** дни недели 0=вс … 6=сб, только для freq=weekly */
   byweekday?: number[]

@@ -201,6 +201,18 @@ export default function SettingsPage() {
               ))}
             </div>
           </div>
+
+          <div className="flex items-center justify-between gap-3 border-t border-surface-2 pt-3">
+            <div>
+              <p className="text-[15px]">Сообщать о просрочке</p>
+              <p className="text-xs text-ink-faint">«⚠️ Не выполнено в срок: N» в это же время</p>
+            </div>
+            <Toggle
+              checked={myProfile?.notify_overdue !== false}
+              onChange={(v) => setPref('notify_overdue', v)}
+              disabled={!pushOn}
+            />
+          </div>
         </div>
       </section>
 

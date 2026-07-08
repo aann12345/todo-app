@@ -6,6 +6,7 @@ import { useComments } from '../hooks/useComments'
 import { WEEKDAY_LABELS } from '../lib/recurrence'
 import { todayISO } from '../lib/dates'
 import { combineDateTime, timeFromISO } from '../lib/remind'
+import { showSnackbar } from '../lib/snackbar'
 import type { ChecklistItem, Recurrence, Task } from '../types'
 import Avatar from './Avatar'
 
@@ -78,9 +79,16 @@ export default function TaskEditor({ task, onClose }: { task: Task; onClose: () 
   const [quantity, setQuantity] = useState(task.quantity ?? '')
   const [checklist, setChecklist] = useState<ChecklistItem[]>(task.checklist ?? [])
   const [newItem, setNewItem] = useState('')
-  const [freq, setFreq] = useState<Recurrence['freq'] | ''>(task.recurrence?.freq ?? '')
+  const initialPreset = (() => {
+    const r = task.recurrence
+    if (!r) return ''
+    if (r.freq === 'monthly' && r.interval === 6) return 'halfyear'
+    return r.freq
+  })()
+  const [preset, setPreset] = useState<string>(initialPreset)
   const [interval, setIntervalN] = useState(task.recurrence?.interval ?? 1)
   const [byweekday, setByweekday] = useState<number[]>(task.recurrence?.byweekday ?? [])
+  const showInterval = preset === 'daily' || preset === 'weekly' || preset === 'monthly' || preset === 'yearly'
   const [saving, setSaving] = useState(false)
 
   function addChecklistItem() {
@@ -97,27 +105,38 @@ export default function TaskEditor({ task, onClose }: { task: Task; onClose: () 
       if (!confirm(`Срок ${dueDate} уже в прошлом. Точно сохранить?`)) return
     }
     setSaving(true)
-    const recurrence: Recurrence | null = freq
-      ? { freq, interval: Math.max(1, interval), ...(freq === 'weekly' && byweekday.length ? { byweekday } : {}) }
-      : null
+    let recurrence: Recurrence | null = null
+    const n = Math.max(1, interval)
+    if (preset === 'halfyear') recurrence = { freq: 'monthly', interval: 6 }
+    else if (preset === 'weekly')
+      recurrence = { freq: 'weekly', interval: n, ...(byweekday.length ? { byweekday } : {}) }
+    else if (preset === 'daily' || preset === 'monthly' || preset === 'yearly')
+      recurrence = { freq: preset, interval: n }
     // напоминание: дата + время → момент UTC; сброс «отправлено» при изменении
     const remind_at = dueDate && remindTime ? combineDateTime(dueDate, remindTime) : null
-    await updateTask.mutateAsync({
-      id: task.id,
-      title: title.trim(),
-      notes,
-      list_id: listId,
-      due_date: dueDate || null,
-      priority: priority as Task['priority'],
-      assignee_id: assigneeAll ? null : assigneeId || null,
-      assignee_all: assigneeAll,
-      recurrence,
-      quantity: quantity.trim() || null,
-      checklist,
-      remind_at,
-      reminded: remind_at !== task.remind_at ? false : task.reminded,
-    })
-    onClose()
+    try {
+      await updateTask.mutateAsync({
+        id: task.id,
+        title: title.trim(),
+        notes,
+        list_id: listId,
+        due_date: dueDate || null,
+        priority: priority as Task['priority'],
+        assignee_id: assigneeAll ? null : assigneeId || null,
+        assignee_all: assigneeAll,
+        recurrence,
+        quantity: quantity.trim() || null,
+        checklist,
+        remind_at,
+        reminded: remind_at !== task.remind_at ? false : task.reminded,
+      })
+      onClose()
+    } catch (err) {
+      setSaving(false)
+      showSnackbar({
+        text: `Не удалось сохранить: ${err instanceof Error ? err.message : String(err)}`,
+      })
+    }
   }
 
   async function remove() {
@@ -352,15 +371,17 @@ export default function TaskEditor({ task, onClose }: { task: Task; onClose: () 
           <div className="flex flex-wrap items-center gap-2">
             <select
               className="rounded-lg bg-surface-2 px-3 py-2 text-sm outline-none"
-              value={freq}
-              onChange={(e) => setFreq(e.target.value as Recurrence['freq'] | '')}
+              value={preset}
+              onChange={(e) => setPreset(e.target.value)}
             >
               <option value="">Без повтора</option>
               <option value="daily">Ежедневно</option>
               <option value="weekly">Еженедельно</option>
               <option value="monthly">Ежемесячно</option>
+              <option value="halfyear">Каждые полгода</option>
+              <option value="yearly">Каждый год</option>
             </select>
-            {freq && (
+            {showInterval && (
               <label className="flex items-center gap-1.5 text-sm text-ink-dim">
                 каждые
                 <input
@@ -371,11 +392,11 @@ export default function TaskEditor({ task, onClose }: { task: Task; onClose: () 
                   value={interval}
                   onChange={(e) => setIntervalN(Number(e.target.value))}
                 />
-                {freq === 'daily' ? 'дн.' : freq === 'weekly' ? 'нед.' : 'мес.'}
+                {preset === 'daily' ? 'дн.' : preset === 'weekly' ? 'нед.' : preset === 'yearly' ? 'г.' : 'мес.'}
               </label>
             )}
           </div>
-          {freq === 'weekly' && (
+          {preset === 'weekly' && (
             <div className="mt-2 flex gap-1.5">
               {[1, 2, 3, 4, 5, 6, 0].map((d) => (
                 <button
@@ -396,7 +417,7 @@ export default function TaskEditor({ task, onClose }: { task: Task; onClose: () 
               ))}
             </div>
           )}
-          {freq && !dueDate && (
+          {preset && !dueDate && (
             <p className="mt-1.5 text-xs text-p2">Для повтора укажите срок задачи</p>
           )}
         </div>
@@ -419,7 +440,7 @@ export default function TaskEditor({ task, onClose }: { task: Task; onClose: () 
             </button>
             <button
               onClick={save}
-              disabled={saving || !title.trim() || Boolean(freq && !dueDate)}
+              disabled={saving || !title.trim() || Boolean(preset && !dueDate)}
               className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
             >
               Сохранить

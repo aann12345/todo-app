@@ -33,6 +33,10 @@ export function nextOccurrence(rec: Recurrence, dueDate: string): string {
       next = addMonths(base, interval)
       while (next <= today) next = addMonths(next, interval)
       break
+    case 'yearly':
+      next = addMonths(base, 12 * interval)
+      while (next <= today) next = addMonths(next, 12 * interval)
+      break
   }
   return format(next, 'yyyy-MM-dd')
 }
@@ -50,6 +54,9 @@ export function recurrenceLabel(rec: Recurrence): string {
       return days ? `${base}: ${days}` : base
     }
     case 'monthly':
+      if (n === 6) return 'каждые полгода'
       return n === 1 ? 'каждый месяц' : `каждые ${n} мес.`
+    case 'yearly':
+      return n === 1 ? 'каждый год' : `каждые ${n} г.`
   }
 }
