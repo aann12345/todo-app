@@ -8,13 +8,16 @@ import { dueLabel, todayISO } from '../lib/dates'
 import { recurrenceLabel } from '../lib/recurrence'
 
 type DueChip = 'none' | 'today' | 'tomorrow'
+type MultiMode = 'separate' | 'single'
 
-/** Плавающая кнопка «+»: добавить одну задачу или сразу список. */
+/** Плавающая кнопка «+»: добавить одну задачу, список пунктами или одной задачей с подпунктами. */
 export default function GlobalAdd() {
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
   const [listId, setListId] = useState('')
   const [chip, setChip] = useState<DueChip>('none')
+  const [mode, setMode] = useState<MultiMode>('separate')
+  const [groupName, setGroupName] = useState('Покупки')
   const lists = useLists()
   const { addTask, addMany } = useTaskMutations()
   const location = useLocation()
@@ -26,9 +29,12 @@ export default function GlobalAdd() {
 
   function openDialog() {
     const m = location.pathname.match(/\/list\/([^/]+)/)
-    setListId(m?.[1] ?? lists[0]?.id ?? '')
+    const lid = m?.[1] ?? lists[0]?.id ?? ''
+    setListId(lid)
     setChip(location.pathname === '/' ? 'today' : 'none')
     setText('')
+    setMode('separate')
+    setGroupName(lists.find((l) => l.id === lid)?.name ?? 'Покупки')
     setOpen(true)
   }
 
@@ -39,8 +45,16 @@ export default function GlobalAdd() {
     e.preventDefault()
     if (!listId || items.length === 0) return
 
-    if (multi) {
-      // каждый пункт разбираем на дату/количество отдельно
+    if (multi && mode === 'single') {
+      // одна задача, продукты — подпункты (чек-лист)
+      addTask.mutate({
+        title: groupName.trim() || 'Список',
+        list_id: listId,
+        due_date: parsed.due_date ?? chipDue,
+        checklist: items.map((t) => ({ id: crypto.randomUUID(), text: t, done: false })),
+      })
+    } else if (multi) {
+      // каждый пункт — отдельная задача
       addMany.mutate({
         list_id: listId,
         items: items.map((raw) => {
@@ -94,7 +108,38 @@ export default function GlobalAdd() {
             />
 
             {multi && (
-              <p className="mt-1 text-xs text-accent">Будет добавлено пунктов: {items.length}</p>
+              <div className="mt-2">
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setMode('separate')}
+                    className={`flex-1 rounded-lg px-3 py-2 text-left text-sm transition ${
+                      mode === 'separate' ? 'bg-surface-3' : 'bg-surface-2 text-ink-dim'
+                    }`}
+                  >
+                    <div className="font-medium">☑ Отдельными задачами</div>
+                    <div className="text-xs text-ink-faint">{items.length} строк(и), каждая со своей галочкой</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode('single')}
+                    className={`flex-1 rounded-lg px-3 py-2 text-left text-sm transition ${
+                      mode === 'single' ? 'bg-surface-3' : 'bg-surface-2 text-ink-dim'
+                    }`}
+                  >
+                    <div className="font-medium">📋 Одной задачей</div>
+                    <div className="text-xs text-ink-faint">список из {items.length} подпунктов внутри</div>
+                  </button>
+                </div>
+                {mode === 'single' && (
+                  <input
+                    className="mt-2 w-full rounded-lg bg-surface-2 px-3 py-2 text-sm outline-none placeholder:text-ink-faint focus:ring-2 focus:ring-accent"
+                    placeholder="Название задачи (например, «Покупки»)"
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                  />
+                )}
+              </div>
             )}
 
             {!multi && (parsed.due_date || parsed.recurrence || parsed.quantity) && (
@@ -168,7 +213,7 @@ export default function GlobalAdd() {
                 disabled={items.length === 0}
                 className="rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
               >
-                {multi ? `Добавить ${items.length}` : 'Добавить'}
+                {multi ? (mode === 'single' ? 'Создать задачу' : `Добавить ${items.length}`) : 'Добавить'}
               </button>
             </div>
           </form>

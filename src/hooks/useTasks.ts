@@ -41,6 +41,7 @@ export interface TaskInput {
   assignee_id?: string | null
   recurrence?: Task['recurrence']
   quantity?: string | null
+  checklist?: Task['checklist']
 }
 
 export function useTaskMutations() {
@@ -65,6 +66,7 @@ export function useTaskMutations() {
         recurrence: input.recurrence ?? null,
         quantity: input.quantity ?? null,
         category: categorize(input.title),
+        checklist: input.checklist ?? [],
       })
       if (error) throw error
     },
