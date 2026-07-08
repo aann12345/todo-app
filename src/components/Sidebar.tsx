@@ -89,16 +89,24 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           })}
         </div>
         {addingList && (
-          <form onSubmit={submitList} className="mt-1 px-1">
+          <form onSubmit={submitList} className="mt-1 flex gap-1.5 px-1">
             <input
               autoFocus
-              className="w-full rounded-lg bg-surface-2 px-3 py-2 text-sm outline-none placeholder:text-ink-faint focus:ring-2 focus:ring-accent"
+              className="min-w-0 flex-1 rounded-lg bg-surface-2 px-3 py-2 text-sm outline-none placeholder:text-ink-faint focus:ring-2 focus:ring-accent"
               placeholder="Название списка"
               value={newList}
               onChange={(e) => setNewList(e.target.value)}
-              onBlur={() => !newList.trim() && setAddingList(false)}
+              enterKeyHint="done"
               onKeyDown={(e) => e.key === 'Escape' && setAddingList(false)}
             />
+            {/* явная кнопка: галочка клавиатуры iOS не сабмитит форму */}
+            <button
+              type="submit"
+              disabled={!newList.trim()}
+              className="shrink-0 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-40"
+            >
+              ОК
+            </button>
           </form>
         )}
       </div>

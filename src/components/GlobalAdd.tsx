@@ -33,7 +33,7 @@ export default function GlobalAdd() {
     setListId(lid)
     setChip(location.pathname === '/' ? 'today' : 'none')
     setText('')
-    setMode('separate')
+    setMode('single')
     setGroupName(lists.find((l) => l.id === lid)?.name ?? 'Покупки')
     setOpen(true)
   }

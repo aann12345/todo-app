@@ -70,11 +70,12 @@ export default function WorkspaceDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl bg-surface-1 p-5"
+        className="max-h-[88vh] w-full max-w-sm overflow-y-auto rounded-t-2xl bg-surface-1 p-5 sm:rounded-2xl"
+        style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex rounded-lg bg-surface-2 p-1">
